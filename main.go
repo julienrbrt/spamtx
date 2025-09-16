@@ -26,9 +26,7 @@ func main() {
 		cancel()
 	}()
 
-	if err := fang.Execute(ctx, rootCmd()); err != nil {
-		log.Fatal(err)
-	}
+	_ = fang.Execute(ctx, rootCmd()) // errors are handled by command
 }
 
 func rootCmd() *cobra.Command {

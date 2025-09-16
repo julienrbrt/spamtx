@@ -7,6 +7,7 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/ignite/cli/v29/ignite/pkg/cosmosaccount"
 	"github.com/ignite/cli/v29/ignite/pkg/cosmosclient"
@@ -71,16 +72,21 @@ func spamTransactions(ctx context.Context, config Config) error {
 		return fmt.Errorf("failed to create cosmos client: %w", err)
 	}
 
-	// Initialize keyring to get account
-	registry, _, err := initializeKeyring(config.Chain)
+	// Get account from cosmos client's keyring
+	account, err := client.Account(config.Account)
 	if err != nil {
-		return fmt.Errorf("failed to initialize keyring: %w", err)
+		return fmt.Errorf("failed to get account '%s' from cosmos client keyring: %w", config.Account, err)
 	}
 
-	// Get account from keyring
-	account, err := registry.GetByName(config.Account)
+	// Get account address for verification
+	accountAddr, err := account.Address(bech32Prefix)
 	if err != nil {
 		return fmt.Errorf("failed to get account '%s' from keyring: %w", config.Account, err)
+	}
+
+	// Check if account exists on the blockchain
+	if err := verifyAccountExists(ctx, client, accountAddr); err != nil {
+		return fmt.Errorf("account verification failed: %w", err)
 	}
 
 	// Parse the fees to get the amount for self-transfers
@@ -174,4 +180,23 @@ func parseAmount(amountStr string) (sdk.Coins, error) {
 	}
 
 	return coins, nil
+}
+
+// verifyAccountExists checks if an account exists on the blockchain
+func verifyAccountExists(ctx context.Context, client cosmosclient.Client, address string) error {
+	queryCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	// Query the account to see if it exists
+	queryClient := authtypes.NewQueryClient(client.Context())
+
+	_, err := queryClient.Account(queryCtx, &authtypes.QueryAccountRequest{
+		Address: address,
+	})
+
+	if err != nil {
+		return fmt.Errorf("account %s not found on blockchain - please fund this account first: %w", address, err)
+	}
+
+	return nil
 }
