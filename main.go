@@ -53,7 +53,7 @@ func spamCmd() *cobra.Command {
 		Use:   "spam [chain]",
 		Args:  cobra.ExactArgs(1),
 		Short: "Start spamming transactions",
-		Long:  "Start spamming self bank send transactions at a controlled rate",
+		Long:  "Start spamming self bank send transactions at a controlled rate. Use --rpc to override the RPC endpoint from chain registry.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config.Chain = args[0]
 			if err := validateConfig(config); err != nil {
@@ -68,6 +68,7 @@ func spamCmd() *cobra.Command {
 	cmd.Flags().StringVar(&config.Fees, flagFees, "", "Transaction fees")
 	cmd.Flags().StringVar(&config.Memo, flagMemo, "", "Transaction memo")
 	cmd.Flags().IntVar(&config.TPS, flagTPS, 10, "Transactions per second")
+	cmd.Flags().StringVar(&config.RPC, flagRPC, "", "RPC endpoint URL (optional, overrides chain registry)")
 
 	_ = cmd.MarkFlagRequired(flagFrom)
 	_ = cmd.MarkFlagRequired(flagFees)

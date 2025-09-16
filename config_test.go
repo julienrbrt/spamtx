@@ -24,6 +24,18 @@ func TestValidateConfig(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "valid config with custom RPC",
+			config: Config{
+				Chain:   "cosmoshub",
+				Account: "cosmos1abc123",
+				Fees:    "1000uatom",
+				Memo:    "test memo",
+				TPS:     10,
+				RPC:     "http://localhost:26657",
+			},
+			wantErr: false,
+		},
+		{
 			name: "empty chain",
 			config: Config{
 				Chain:   "",

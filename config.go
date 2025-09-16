@@ -9,6 +9,7 @@ var (
 	flagFees = "fees"
 	flagMemo = "memo"
 	flagTPS  = "tps"
+	flagRPC  = "rpc"
 )
 
 // Config holds the command line configuration
@@ -18,6 +19,7 @@ type Config struct {
 	Fees    string
 	Memo    string
 	TPS     int
+	RPC     string
 }
 
 // validateConfig validates the configuration parameters

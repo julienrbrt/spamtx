@@ -13,25 +13,38 @@ go build -o spamtx .
 ## Usage
 
 ```sh
-spamtx <chain> --from <address> --fees <amount> --memo <message> --tps <speed>
+spamtx spam <chain> --from <address> --fees <amount> --memo <message> --tps <speed> [--rpc <endpoint>]
 ```
 
 ### Parameters
 
-- `--from`: Your account address (must exist in keyring)
+- `--from`: Your account name from keyring (must exist in keyring)
 - `--fees`: Transaction fees (e.g., "1000uatom")
 - `--memo`: Message to include in each transaction
 - `--tps`: Transactions per second rate limit
+- `--rpc`: (Optional) Custom RPC endpoint URL to override chain registry
 
 ### Example
 
 ```sh
-./spamtx \
+./spamtx spam \
   cosmoshub \
   --from alice \
   --fees 1000uatom \
   --memo "spam test" \
   --tps 5
+```
+
+### Example with custom RPC
+
+```sh
+./spamtx spam \
+  cosmoshub \
+  --from alice \
+  --fees 1000uatom \
+  --memo "spam test" \
+  --tps 5 \
+  --rpc http://localhost:26657
 ```
 
 ## Stack

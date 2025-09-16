@@ -47,10 +47,26 @@ func getChainInfo(chainName string) (string, string, error) {
 
 // spamTransactions starts the transaction spamming process
 func spamTransactions(ctx context.Context, config Config) error {
-	// Get chain information from registry
-	rpcEndpoint, bech32Prefix, err := getChainInfo(config.Chain)
-	if err != nil {
-		return fmt.Errorf("failed to get chain info: %w", err)
+	var rpcEndpoint, bech32Prefix string
+	var err error
+
+	// Use custom RPC if provided, otherwise get from chain registry
+	if config.RPC != "" {
+		rpcEndpoint = config.RPC
+		log.Printf("🔗 Using custom RPC endpoint: %s", rpcEndpoint)
+
+		// Still need bech32 prefix from chain registry
+		_, bech32Prefix, err = getChainInfo(config.Chain)
+		if err != nil {
+			return fmt.Errorf("failed to get chain info for bech32 prefix: %w", err)
+		}
+	} else {
+		// Get chain information from registry
+		rpcEndpoint, bech32Prefix, err = getChainInfo(config.Chain)
+		if err != nil {
+			return fmt.Errorf("failed to get chain info: %w", err)
+		}
+		log.Printf("🔗 Using RPC endpoint from chain registry: %s", rpcEndpoint)
 	}
 
 	// Get keyring home directory
@@ -152,8 +168,12 @@ func sendTransaction(ctx context.Context, client cosmosclient.Client, account co
 
 	// Broadcast the transaction
 	response, err := txService.Broadcast(txCtx)
-	if err != nil || response.Code != 0 {
-		return fmt.Errorf("failed to broadcast transaction: %w, code: %d", err, response.Code)
+	if err != nil {
+		return fmt.Errorf("failed to broadcast transaction: %w", err)
+	}
+
+	if response.Code != 0 {
+		return fmt.Errorf("transaction failed with code %d", response.Code)
 	}
 
 	// Log transaction details periodically
