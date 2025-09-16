@@ -121,7 +121,7 @@ func validateAccountName(name string) error {
 }
 
 // listAccounts lists all accounts in the keyring
-func listAccounts(registry cosmosaccount.Registry) error {
+func listAccounts(registry cosmosaccount.Registry, bech32Prefix string) error {
 	accounts, err := registry.List()
 	if err != nil {
 		return fmt.Errorf("failed to list accounts: %w", err)
@@ -134,7 +134,7 @@ func listAccounts(registry cosmosaccount.Registry) error {
 
 	fmt.Printf("Found %d account(s) in keyring:\n", len(accounts))
 	for i, account := range accounts {
-		address, err := account.Address("")
+		address, err := account.Address(bech32Prefix)
 		if err != nil {
 			fmt.Printf("%d. %s (error getting address: %v)\n", i+1, account.Name, err)
 			continue
@@ -146,7 +146,7 @@ func listAccounts(registry cosmosaccount.Registry) error {
 }
 
 // importAccount imports an account from a mnemonic or private key
-func importAccount(registry cosmosaccount.Registry, name, secret, passphrase string) error {
+func importAccount(registry cosmosaccount.Registry, name, secret, passphrase, bech32prefix string) error {
 	if err := validateAccountName(name); err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func importAccount(registry cosmosaccount.Registry, name, secret, passphrase str
 		return fmt.Errorf("failed to import account: %w", err)
 	}
 
-	address, err := account.Address("")
+	address, err := account.Address(bech32prefix)
 	if err != nil {
 		return fmt.Errorf("failed to get account address: %w", err)
 	}

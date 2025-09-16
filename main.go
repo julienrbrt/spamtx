@@ -121,12 +121,12 @@ func keyringListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			chainName := args[0]
 
-			registry, _, err := initializeKeyring(chainName)
+			registry, bech32Prefix, err := initializeKeyring(chainName)
 			if err != nil {
 				return fmt.Errorf("failed to initialize keyring: %w", err)
 			}
 
-			return listAccounts(registry)
+			return listAccounts(registry, bech32Prefix)
 		},
 	}
 }
@@ -143,12 +143,12 @@ func keyringImportCmd() *cobra.Command {
 			accountName := args[1]
 			secret := args[2]
 
-			registry, _, err := initializeKeyring(chainName)
+			registry, bech32Prefix, err := initializeKeyring(chainName)
 			if err != nil {
 				return fmt.Errorf("failed to initialize keyring: %w", err)
 			}
 
-			return importAccount(registry, accountName, secret, passphrase)
+			return importAccount(registry, accountName, secret, passphrase, bech32Prefix)
 		},
 	}
 
