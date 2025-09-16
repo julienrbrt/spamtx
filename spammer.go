@@ -105,6 +105,13 @@ func spamTransactions(ctx context.Context, config Config) error {
 		return fmt.Errorf("account verification failed: %w", err)
 	}
 
+	// Fetch and display current account sequence
+	sequence, err := fetchAccountSequence(ctx, client, accountAddr)
+	if err != nil {
+		return fmt.Errorf("failed to fetch account sequence: %w", err)
+	}
+	log.Printf("📊 Current account sequence: %d", sequence)
+
 	// Parse the fees to get the amount for self-transfers
 	amount, err := parseAmount(config.Fees)
 	if err != nil {
@@ -116,11 +123,21 @@ func spamTransactions(ctx context.Context, config Config) error {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	txCount := 0
+	var txCount uint64 = 0
 	for {
 		select {
 		case <-ticker.C:
-			if err := sendTransaction(ctx, client, account, config, amount, txCount, bech32Prefix, config.Memo); err != nil {
+			if err := sendTransaction(
+				ctx,
+				client,
+				account,
+				config,
+				amount,
+				txCount,
+				bech32Prefix,
+				config.Memo,
+				sequence+txCount,
+			); err != nil {
 				log.Printf("❌ Failed to send transaction: %v", err)
 				continue
 			}
@@ -136,7 +153,7 @@ func spamTransactions(ctx context.Context, config Config) error {
 }
 
 // sendTransaction sends a bank transfer transaction to self with a specified memo.
-func sendTransaction(ctx context.Context, client cosmosclient.Client, account cosmosaccount.Account, config Config, amount sdk.Coins, txNum int, addressPrefix, memo string) error {
+func sendTransaction(ctx context.Context, client cosmosclient.Client, account cosmosaccount.Account, config Config, amount sdk.Coins, txNum uint64, addressPrefix, memo string, sequence uint64) error {
 	txCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -167,7 +184,7 @@ func sendTransaction(ctx context.Context, client cosmosclient.Client, account co
 	}
 
 	// Broadcast the transaction
-	response, err := txService.Broadcast(txCtx)
+	response, err := txService.BroadcastAsync(txCtx, cosmosclient.WithSequence(sequence))
 	if err != nil {
 		return fmt.Errorf("failed to broadcast transaction: %w", err)
 	}
@@ -219,4 +236,27 @@ func verifyAccountExists(ctx context.Context, client cosmosclient.Client, addres
 	}
 
 	return nil
+}
+
+// fetchAccountSequence fetches the current sequence number for an account
+func fetchAccountSequence(ctx context.Context, client cosmosclient.Client, address string) (uint64, error) {
+	queryCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	// Query the account to get sequence information
+	queryClient := authtypes.NewQueryClient(client.Context())
+
+	resp, err := queryClient.Account(queryCtx, &authtypes.QueryAccountRequest{
+		Address: address,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("failed to query account %s: %w", address, err)
+	}
+
+	var account sdk.AccountI
+	if err := client.Context().Codec.UnpackAny(resp.Account, &account); err != nil {
+		return 0, fmt.Errorf("failed to unpack account: %w", err)
+	}
+
+	return account.GetSequence(), nil
 }

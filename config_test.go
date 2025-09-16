@@ -90,17 +90,6 @@ func TestValidateConfig(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "negative tps",
-			config: Config{
-				Chain:   "cosmoshub",
-				Account: "cosmos1abc123",
-				Fees:    "1000uatom",
-				Memo:    "test memo",
-				TPS:     -5,
-			},
-			wantErr: true,
-		},
 	}
 
 	for _, tt := range tests {

@@ -18,7 +18,7 @@ type Config struct {
 	Account string
 	Fees    string
 	Memo    string
-	TPS     int
+	TPS     uint64
 	RPC     string
 }
 
@@ -36,7 +36,7 @@ func validateConfig(config Config) error {
 	if config.Memo == "" {
 		return errors.New("memo is required")
 	}
-	if config.TPS <= 0 {
+	if config.TPS == 0 {
 		return errors.New("tps must be greater than 0")
 	}
 

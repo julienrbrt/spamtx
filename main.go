@@ -67,7 +67,7 @@ func spamCmd() *cobra.Command {
 	cmd.Flags().StringVar(&config.Account, flagFrom, "", "Account name from keyring")
 	cmd.Flags().StringVar(&config.Fees, flagFees, "", "Transaction fees")
 	cmd.Flags().StringVar(&config.Memo, flagMemo, "", "Transaction memo")
-	cmd.Flags().IntVar(&config.TPS, flagTPS, 10, "Transactions per second")
+	cmd.Flags().Uint64Var(&config.TPS, flagTPS, 10, "Transactions per second")
 	cmd.Flags().StringVar(&config.RPC, flagRPC, "", "RPC endpoint URL (optional, overrides chain registry)")
 
 	_ = cmd.MarkFlagRequired(flagFrom)
