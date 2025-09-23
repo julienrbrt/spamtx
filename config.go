@@ -5,21 +5,23 @@ import (
 )
 
 var (
-	flagFrom = "from"
-	flagFees = "fees"
-	flagMemo = "memo"
-	flagTPS  = "tps"
-	flagRPC  = "rpc"
+	flagFrom     = "from"
+	flagFees     = "fees"
+	flagGasLimit = "gas-limit"
+	flagMemo     = "memo"
+	flagTPS      = "tps"
+	flagRPC      = "rpc"
 )
 
 // Config holds the command line configuration
 type Config struct {
-	Chain   string
-	Account string
-	Fees    string
-	Memo    string
-	TPS     uint64
-	RPC     string
+	Chain    string
+	Account  string
+	Fees     string
+	Memo     string
+	TPS      uint64
+	GasLimit uint64
+	RPC      string
 }
 
 // validateConfig validates the configuration parameters

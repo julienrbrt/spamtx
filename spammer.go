@@ -174,8 +174,9 @@ func sendTransaction(ctx context.Context, client cosmosclient.Client, account co
 		ctx,
 		account,
 		cosmosclient.TxOptions{
-			Memo: memo,
-			Fees: config.Fees,
+			Memo:     memo,
+			Fees:     config.Fees,
+			GasLimit: config.GasLimit,
 		},
 		bankSendMsg,
 	)
