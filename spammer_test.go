@@ -368,3 +368,52 @@ func TestFetchAccountSequence(t *testing.T) {
 		})
 	}
 }
+
+func TestCalculateAddressCount(t *testing.T) {
+	tests := []struct {
+		name          string
+		config        Config
+		expectedCount uint64
+	}{
+		{
+			name: "with explicit address count",
+			config: Config{
+				HeavyAddressCount: 25,
+			},
+			expectedCount: 25,
+		},
+		{
+			name: "with gas limit scaling",
+			config: Config{
+				GasLimit: 500000, // Should result in (500000-50000)/15000 = 30
+			},
+			expectedCount: 30,
+		},
+		{
+			name: "with very high gas limit",
+			config: Config{
+				GasLimit: 2000000, // Should result in (2000000-50000)/15000 = 130
+			},
+			expectedCount: 130,
+		},
+		{
+			name: "with low gas limit",
+			config: Config{
+				GasLimit: 60000, // Should result in (60000-50000)/15000 = 0, fallback to 10
+			},
+			expectedCount: 10,
+		},
+		{
+			name:          "default fallback",
+			config:        Config{},
+			expectedCount: 10,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := calculateAddressCount(tt.config)
+			assert.Equal(t, tt.expectedCount, result)
+		})
+	}
+}

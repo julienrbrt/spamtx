@@ -6,6 +6,8 @@ import (
 	"log"
 	"time"
 
+	"cosmossdk.io/math"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -127,17 +129,33 @@ func spamTransactions(ctx context.Context, config Config) error {
 	for {
 		select {
 		case <-ticker.C:
-			if err := sendTransaction(
-				ctx,
-				client,
-				account,
-				config,
-				amount,
-				txCount,
-				bech32Prefix,
-				config.Memo,
-				sequence+txCount,
-			); err != nil {
+			var err error
+			if config.Heavy {
+				err = sendHeavyTransaction(
+					ctx,
+					client,
+					account,
+					config,
+					amount,
+					txCount,
+					bech32Prefix,
+					config.Memo,
+					sequence+txCount,
+				)
+			} else {
+				err = sendTransaction(
+					ctx,
+					client,
+					account,
+					config,
+					amount,
+					txCount,
+					bech32Prefix,
+					config.Memo,
+					sequence+txCount,
+				)
+			}
+			if err != nil {
 				log.Printf("❌ Failed to send transaction: %v", err)
 				continue
 			}
@@ -260,4 +278,101 @@ func fetchAccountSequence(ctx context.Context, client cosmosclient.Client, addre
 	}
 
 	return account.GetSequence(), nil
+}
+
+// calculateAddressCount determines how many addresses to send to in heavy mode
+func calculateAddressCount(config Config) uint64 {
+	if config.HeavyAddressCount > 0 {
+		return config.HeavyAddressCount
+	}
+
+	// Scale based on gas limit if provided
+	if config.GasLimit > 0 {
+		// Rough estimate: each output in MsgMultiSend uses ~15k gas
+		// Leave some buffer for base transaction costs
+		estimatedCount := (config.GasLimit - 50000) / 15000
+		if estimatedCount > 0 {
+			return estimatedCount
+		}
+	}
+
+	// Default fallback
+	return 10
+}
+
+// sendHeavyTransaction sends a bank multi-send transaction to self multiple times
+func sendHeavyTransaction(ctx context.Context, client cosmosclient.Client, account cosmosaccount.Account, config Config, amount sdk.Coins, txNum uint64, addressPrefix, memo string, sequence uint64) error {
+	txCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	accountAddr, err := account.Address(addressPrefix)
+	if err != nil {
+		return fmt.Errorf("failed to get account address: %w", err)
+	}
+
+	outputCount := calculateAddressCount(config)
+
+	// Calculate amount per output (split the total amount)
+	amountPerOutput := amount.QuoInt(math.NewIntFromUint64(outputCount))
+	if amountPerOutput.IsZero() {
+		// If amount is too small to split, send 1 unit of the first denomination to each output
+		if len(amount) > 0 {
+			denom := amount[0].Denom
+			amountPerOutput = sdk.NewCoins(sdk.NewCoin(denom, math.NewInt(1)))
+		}
+	}
+
+	// Build inputs and outputs for MsgMultiSend
+	totalOutput := amountPerOutput.MulInt(math.NewIntFromUint64(outputCount))
+	inputs := []banktypes.Input{
+		{
+			Address: accountAddr,
+			Coins:   totalOutput,
+		},
+	}
+
+	// Create and broadcast bank multi send transaction to self
+	outputs := make([]banktypes.Output, outputCount)
+	for i := uint64(0); i < outputCount; i++ {
+		outputs[i] = banktypes.Output{
+			Address: accountAddr,
+			Coins:   amountPerOutput,
+		}
+	}
+
+	multiSendMsg := &banktypes.MsgMultiSend{
+		Inputs:  inputs,
+		Outputs: outputs,
+	}
+
+	txService, err := client.CreateTxWithOptions(
+		ctx,
+		account,
+		cosmosclient.TxOptions{
+			Memo:     memo,
+			Fees:     config.Fees,
+			GasLimit: config.GasLimit,
+		},
+		multiSendMsg,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create multi-send transaction: %w", err)
+	}
+
+	// Broadcast the transaction
+	response, err := txService.BroadcastAsync(txCtx, cosmosclient.WithSequence(sequence))
+	if err != nil {
+		return fmt.Errorf("failed to broadcast transaction: %w", err)
+	}
+
+	if response.Code != 0 {
+		return fmt.Errorf("transaction failed with code %d", response.Code)
+	}
+
+	// Log transaction details periodically
+	if txNum%100 == 0 {
+		log.Printf("🔗 Heavy transaction #%d broadcasted with hash: %s, outputs: %d, memo: %s", txNum, response.TxHash, outputCount, config.Memo)
+	}
+
+	return nil
 }

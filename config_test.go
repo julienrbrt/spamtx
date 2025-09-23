@@ -15,11 +15,13 @@ func TestValidateConfig(t *testing.T) {
 		{
 			name: "valid config",
 			config: Config{
-				Chain:   "cosmoshub",
-				Account: "cosmos1abc123",
-				Fees:    "1000uatom",
-				Memo:    "test memo",
-				TPS:     10,
+				Chain:             "cosmoshub",
+				Account:           "cosmos1abc123",
+				Fees:              "1000uatom",
+				Memo:              "test memo",
+				TPS:               10,
+				Heavy:             true,
+				HeavyAddressCount: 69,
 			},
 			wantErr: false,
 		},

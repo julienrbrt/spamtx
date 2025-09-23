@@ -70,6 +70,8 @@ func spamCmd() *cobra.Command {
 	cmd.Flags().Uint64Var(&config.TPS, flagTPS, 10, "Transactions per second")
 	cmd.Flags().StringVar(&config.RPC, flagRPC, "", "RPC endpoint URL (optional, overrides chain registry)")
 	cmd.Flags().Uint64Var(&config.GasLimit, flagGasLimit, 0, "Gas limit (optional, default is estimated)")
+	cmd.Flags().BoolVar(&config.Heavy, flagHeavy, false, "Send heavy multi-send transactions to self (multiple outputs)")
+	cmd.Flags().Uint64Var(&config.HeavyAddressCount, flagAddressCount, 0, "Number of outputs in heavy mode (default: scales with gas limit, fallback: 10)")
 
 	_ = cmd.MarkFlagRequired(flagFrom)
 	_ = cmd.MarkFlagRequired(flagFees)
